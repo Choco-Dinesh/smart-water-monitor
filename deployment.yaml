@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
       - name: dashboard
-        image: your-dockerhub-username/smart-water-monitor:latest
+        image: dineshchoco/smart-water-monitor:latest
         ports:
         - containerPort: 80
 ---
