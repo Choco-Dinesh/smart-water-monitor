@@ -1,1 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Smart Water Distribution & Leakage Monitoring</title>
+    <style>
+        body { font-family: Arial, sans-serif; background: #f4f6f9; margin: 0; padding: 20px; color: #333; }
+        header { background: #0056b3; color: white; padding: 15px; border-radius: 5px; text-align: center; }
+        .analytics-container { display: flex; gap: 20px; margin: 20px 0; }
+        .card { background: white; padding: 15px; border-radius: 5px; flex: 1; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        table { width: 100%; border-collapse: collapse; background: white; margin-top: 15px; border-radius: 5px; overflow: hidden; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #ddd; }
+        th { background: #007bff; color: white; }
+        .alert { background: #ffe6e6; color: #d9534f; padding: 10px; border-left: 5px solid #d9534f; margin-bottom: 15px; }
+        .filters { margin: 15px 0; }
+        select { padding: 8px; width: 200px; }
+    </style>
+</head>
+<body>
 
+    <header>
+        <h2>Smart Water Distribution & Leakage Monitoring System</h2>
+    </header>
+
+    <div id="alert-box" class="alert" style="display:none;"></div>
+
+    <div class="analytics-container">
+        <div class="card">
+            <h3>Total Daily Supply</h3>
+            <p id="total-supply" style="font-size: 24px; font-weight: bold; color: #0056b3;">0 kL</p>
+        </div>
+        <div class="card">
+            <h3>Highest Consumption Zone</h3>
+            <p id="highest-zone" style="font-size: 24px; font-weight: bold; color: #d9534f;">-</p>
+        </div>
+    </div>
+
+    <div class="filters">
+        <label for="zone-filter"><strong>Filter by Zone: </strong></label>
+        <select id="zone-filter" onchange="filterData()">
+            <option value="All">All Zones</option>
+            <option value="Zone A">Zone A</option>
+            <option value="Zone B">Zone B</option>
+            <option value="Zone C">Zone C</option>
+            <option value="Zone D">Zone D</option>
+            <option value="Zone E">Zone E</option>
+        </select>
+    </div>
+
+    <h3>Distribution Zones Status</h3>
+    <table>
+        <thead>
+            <tr>
+                <th>Zone</th>
+                <th>Reservoir Level (%)</th>
+                <th>Daily Supply (kL)</th>
+                <th>Pressure (PSI)</th>
+                <th>Supply Timings</th>
+                <th>Network Status</th>
+            </tr>
+        </thead>
+        <tbody id="zone-table-body">
+            <!-- Populated via JS -->
+        </tbody>
+    </table>
+
+    <h3>Leakage Incidents & Maintenance Alerts</h3>
+    <table>
+        <thead>
+            <tr>
+                <th>Incident ID</th>
+                <th>Zone</th>
+                <th>Severity</th>
+                <th>Detection Time</th>
+                <th>Maintenance Status</th>
+            </tr>
+        </thead>
+        <tbody id="leakage-table-body">
+            <!-- Populated via JS -->
+        </tbody>
+    </table>
+
+    <script>
+        const zonesData = [
+            { name: "Zone A", reservoir: 85, supply: 1200, pressure: 55, timing: "06:00 - 10:00", status: "Normal" },
+            { name: "Zone B", reservoir: 20, supply: 950, pressure: 38, timing: "07:00 - 11:00", status: "Warning: Low Level" },
+            { name: "Zone C", reservoir: 60, supply: 1500, pressure: 72, timing: "05:00 - 09:00", status: "Normal" },
+            { name: "Zone D", reservoir: 90, supply: 800, pressure: 45, timing: "08:00 - 12:00", status: "Normal" },
+            { name: "Zone E", reservoir: 45, supply: 1100, pressure: 25, timing: "06:30 - 10:30", status: "Warning: Low Pressure" }
+        ];
+
+        const leakageData = [
+            { id: "INC-101", zone: "Zone B", severity: "High", time: "2026-10-22 08:30", status: "Pending Dispatch" },
+            { id: "INC-102", zone: "Zone E", severity: "Medium", time: "2026-10-22 09:15", status: "In Progress" }
+        ];
+
+        function renderDashboard(filter = "All") {
+            const tableBody = document.getElementById("zone-table-body");
+            tableBody.innerHTML = "";
+            let totalSupply = 0;
+            let maxConsumption = -1;
+            let highestZoneName = "";
+            let alerts = [];
+
+            const filteredZones = filter === "All" ? zonesData : zonesData.filter(z => z.name === filter);
+
+            zonesData.forEach(z => {
+                totalSupply += z.supply;
+                if (z.supply > maxConsumption) {
+                    maxConsumption = z.supply;
+                    highestZoneName = z.name;
+                }
+                if (z.reservoir < 25) {
+                    alerts.push(`Alert: ${z.name} reservoir level dropped below 25% (${z.reservoir}%)!`);
+                }
+                if (z.pressure < 30 || z.pressure > 70) {
+                    alerts.push(`Alert: ${z.name} pipeline pressure abnormal (${z.pressure} PSI)!`);
+                }
+            });
+
+            document.getElementById("total-supply").innerText = `${totalSupply} kL`;
+            document.getElementById("highest-zone").innerText = `${highestZoneName} (${maxConsumption} kL)`;
+
+            const alertBox = document.getElementById("alert-box");
+            if (alerts.length > 0) {
+                alertBox.style.display = "block";
+                alertBox.innerHTML = alerts.join("<br>");
+            } else {
+                alertBox.style.display = "none";
+            }
+
+            filteredZones.forEach(z => {
+                tableBody.innerHTML += `
+                    <tr>
+                        <td>${z.name}</td>
+                        <td>${z.reservoir}%</td>
+                        <td>${z.supply}</td>
+                        <td>${z.pressure}</td>
+                        <td>${z.timing}</td>
+                        <td>${z.status}</td>
+                    </tr>
+                `;
+            });
+
+            const leakageBody = document.getElementById("leakage-table-body");
+            leakageBody.innerHTML = "";
+            const filteredLeakage = filter === "All" ? leakageData : leakageData.filter(l => l.zone === filter);
+            filteredLeakage.forEach(l => {
+                leakageBody.innerHTML += `
+                    <tr>
+                        <td>${l.id}</td>
+                        <td>${l.zone}</td>
+                        <td>${l.severity}</td>
+                        <td>${l.time}</td>
+                        <td>${l.status}</td>
+                    </tr>
+                `;
+            });
+        }
+
+        function filterData() {
+            const selectedZone = document.getElementById("zone-filter").value;
+            renderDashboard(selectedZone);
+        }
+
+        window.onload = () => renderDashboard();
+    </script>
+</body>
+</html>
